@@ -15,12 +15,15 @@ char* set_up_tmp_file(void) {
   FILE* f = fopen(path, "w");
   if (!f) {
     printf("opening the tmp file failed...\n");
+    free(path);
     return NULL;
   }
   char* buf = malloc(PAGE_SIZE*10);
   memset(buf, 'A', PAGE_SIZE*10);
   fwrite(buf, PAGE_SIZE*10, 1, f);
-  //fclose(f);
+  free(buf);
+  fclose(f);
+  // Caller is responsible for freeing the returned path
   return path;
 }
 

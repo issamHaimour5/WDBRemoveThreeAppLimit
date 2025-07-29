@@ -256,8 +256,9 @@ static NSData* patchTCCD(void* executableMap, size_t executableLength) {
     // make offset_addr_s_kTCCServiceMediaLibrary point to "com.apple.app-sandbox.read-write"
     // we need to stick this somewhere; just put it in the padding between
     // the end of __objc_arrayobj and the end of __DATA_CONST
-    strcpy((char*)(data.mutableBytes + offsets.offset_padding_space_for_read_write_string),
-           "com.apple.app-sandbox.read-write");
+    strncpy((char*)(data.mutableBytes + offsets.offset_padding_space_for_read_write_string),
+           "com.apple.app-sandbox.read-write",
+           sizeof("com.apple.app-sandbox.read-write"));
     struct dyld_chained_ptr_arm64e_rebase targetRebase =
         *(struct dyld_chained_ptr_arm64e_rebase*)(mutableBytes +
                                                   offsets.offset_addr_s_kTCCServiceMediaLibrary);
@@ -338,6 +339,7 @@ static void grant_full_disk_access_impl(void (^completion)(NSString* extension_t
   if (!overwrite_file(fd, sourceData)) {
     overwrite_file(fd, originalData);
     munmap(targetMap, targetLength);
+    close(fd);
     completion(
         nil, [NSError errorWithDomain:@"com.worthdoingbadly.fulldiskaccess"
                                  code:1
@@ -348,6 +350,7 @@ static void grant_full_disk_access_impl(void (^completion)(NSString* extension_t
     return;
   }
   munmap(targetMap, targetLength);
+  close(fd);
 
   xpc_crasher("com.apple.tccd");
   sleep(1);
@@ -596,10 +599,12 @@ bool patch_installd() {
   if (!overwrite_file(fd, sourceData)) {
     overwrite_file(fd, originalData);
     munmap(targetMap, targetLength);
+    close(fd);
     NSLog(@"can't overwrite");
     return false;
   }
   munmap(targetMap, targetLength);
+  close(fd);
   xpc_crasher("com.apple.mobile.installd");
   sleep(1);
 
