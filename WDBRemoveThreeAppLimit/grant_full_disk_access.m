@@ -296,19 +296,31 @@ static NSData* patchTCCD(void* executableMap, size_t executableLength) {
 }
 
 static bool overwrite_file(int fd, NSData* sourceData) {
+  bool partial_write_occurred = false;
+  
   for (int off = 0; off < sourceData.length; off += 0x4000) {
     bool success = false;
-    for (int i = 0; i < 2; i++) {
-      if (unaligned_copy_switch_race(
-              fd, off, sourceData.bytes + off,
-              off + 0x4000 > sourceData.length ? sourceData.length - off : 0x4000)) {
+    size_t chunk_size = off + 0x4000 > sourceData.length ? sourceData.length - off : 0x4000;
+    
+    // Try more times for critical operations
+    for (int i = 0; i < 5; i++) {
+      if (unaligned_copy_switch_race(fd, off, sourceData.bytes + off, chunk_size)) {
         success = true;
         break;
       }
+      // Brief delay between retries
+      usleep(1000);
     }
+    
     if (!success) {
+      if (partial_write_occurred) {
+        // If we already wrote some data, we're in an inconsistent state
+        // Log this critical error
+        NSLog(@"CRITICAL: Partial file overwrite failure at offset %d - system may be in inconsistent state", off);
+      }
       return false;
     }
+    partial_write_occurred = true;
   }
   return true;
 }
@@ -605,6 +617,9 @@ bool patch_installd() {
 
   // TODO(zhuowei): for now we revert it once installd starts
   // so the change will only last until when this installd exits
-  overwrite_file(fd, originalData);
+  if (!overwrite_file(fd, originalData)) {
+    NSLog(@"CRITICAL: Failed to revert installd patch - system may remain in modified state");
+    // Still return true since the main operation succeeded, but log the issue
+  }
   return true;
 }

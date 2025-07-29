@@ -344,6 +344,10 @@ bool unaligned_copy_switch_race(int file_to_overwrite, off_t file_offset, const 
 	pthread_mutex_unlock(&ctx->mtx);
 	pthread_join(th, NULL);
 
+	// Clean up synchronization objects
+	dispatch_release(ctx->running_sem);
+	pthread_mutex_destroy(&ctx->mtx);
+
 	kr = mach_port_deallocate(mach_task_self(), ctx->mem_entry_rw);
 	T_QUIET; T_ASSERT_MACH_SUCCESS(kr, "mach_port_deallocate(me_rw)");
 	kr = mach_port_deallocate(mach_task_self(), ctx->mem_entry_ro);
