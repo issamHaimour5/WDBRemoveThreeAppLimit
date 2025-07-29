@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electron App</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Electron</h1>
+        <p>This is your Electron application running!</p>
+        <div class="info">
+            <p>Node.js version: <span id="node-version"></span></p>
+            <p>Electron version: <span id="electron-version"></span></p>
+            <p>Chrome version: <span id="chrome-version"></span></p>
+        </div>
+        <button id="demo-btn">Click me!</button>
+        <div id="output"></div>
+    </div>
+    <script src="renderer.js"></script>
+</body>
+</html>
