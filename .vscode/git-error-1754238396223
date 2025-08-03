@@ -1,0 +1,7 @@
+> git -c user.useConfigOnly=true commit --quiet --allow-empty-message --file --empty-message --file -
+error: gpg failed to sign the data:
+[GNUPG:] BEGIN_SIGNING
+2025/08/03 16:26:33 error signing commit: error signing commit: error making request: 403 | Current user GPG signing not enabled on this repository, error making request: 403 | Current user GPG signing not enabled on this repository
+
+fatal: failed to write commit object
+bool is_arm64e = false;
