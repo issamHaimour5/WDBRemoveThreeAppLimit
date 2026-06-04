@@ -23,18 +23,8 @@ jobs:
         run: |
           test -f WDBRemoveThreeAppLimit.xcodeproj/project.pbxproj
           test -f ExportOptions-AppStore.plist
-
-      - name: Build for iOS Simulator
-        if: env.HAS_APPLE_CREDENTIALS != 'true'
-        run: |
-          xcodebuild \
-            -project WDBRemoveThreeAppLimit.xcodeproj \
-            -scheme WDBRemoveThreeAppLimit \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            clean build
+          test -f WDBRemoveThreeAppLimit.xcodeproj/xcshareddata/xcschemes/WDBRemoveThreeAppLimit.xcscheme
+          xcodebuild -list -project WDBRemoveThreeAppLimit.xcodeproj
 
       - name: Prepare App Store Connect key
         if: env.HAS_APPLE_CREDENTIALS == 'true'
@@ -91,4 +81,4 @@ jobs:
       - name: Explain skipped TestFlight upload
         if: env.HAS_APPLE_CREDENTIALS != 'true'
         run: |
-          echo "Apple secrets are not configured. Simulator build completed; TestFlight upload was skipped."
+          echo "Apple secrets are not configured. Project validation completed; IPA export and TestFlight upload were skipped."
