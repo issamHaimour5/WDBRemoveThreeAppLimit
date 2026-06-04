@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    env:
+      HAS_APPLE_CREDENTIALS: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY != '' && secrets.APP_STORE_CONNECT_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APPLE_TEAM_ID != '' && secrets.APP_BUNDLE_IDENTIFIER != '' }}
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -22,25 +24,30 @@ jobs:
           test -f WDBRemoveThreeAppLimit.xcodeproj/project.pbxproj
           test -f ExportOptions-AppStore.plist
 
+      - name: Build for iOS Simulator
+        if: env.HAS_APPLE_CREDENTIALS != 'true'
+        run: |
+          xcodebuild \
+            -project WDBRemoveThreeAppLimit.xcodeproj \
+            -scheme WDBRemoveThreeAppLimit \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
       - name: Prepare App Store Connect key
+        if: env.HAS_APPLE_CREDENTIALS == 'true'
         env:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APP_BUNDLE_IDENTIFIER: ${{ secrets.APP_BUNDLE_IDENTIFIER }}
         run: |
-          test -n "$APP_STORE_CONNECT_PRIVATE_KEY"
-          test -n "$APP_STORE_CONNECT_KEY_ID"
-          test -n "$APP_STORE_CONNECT_ISSUER_ID"
-          test -n "$APPLE_TEAM_ID"
-          test -n "$APP_BUNDLE_IDENTIFIER"
-
           mkdir -p private_keys
           printf "%s" "$APP_STORE_CONNECT_PRIVATE_KEY" > "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
           chmod 600 "private_keys/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
 
       - name: Build and export IPA
+        if: env.HAS_APPLE_CREDENTIALS == 'true'
         env:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -73,9 +80,15 @@ jobs:
             -exportOptionsPlist ExportOptions-AppStore.plist
 
       - name: Upload to TestFlight
+        if: env.HAS_APPLE_CREDENTIALS == 'true'
         uses: apple-actions/upload-testflight-build@v1
         with:
           app-path: build/WDBRemoveThreeAppLimit.ipa
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+
+      - name: Explain skipped TestFlight upload
+        if: env.HAS_APPLE_CREDENTIALS != 'true'
+        run: |
+          echo "Apple secrets are not configured. Simulator build completed; TestFlight upload was skipped."
